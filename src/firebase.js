@@ -6,9 +6,8 @@ import { getAuth } from "firebase/auth";
 
 import { getStorage } from "firebase/storage";
 
-import { getAnalytics } from "firebase/analytics";
-
 const firebaseConfig = {
+
   apiKey: "AIzaSyBds6Q8iIq0UITHkSnK0aE4Xf9XkjNocKI",
 
   authDomain: "fenix-warriors-ff72e.firebaseapp.com",
@@ -21,18 +20,17 @@ const firebaseConfig = {
 
   appId: "1:90891959036:web:c1d34de94f63c2fceaf579",
 
-  measurementId: "G-08YK41PSQ0",
+  measurementId: "G-08YK41PSQ0"
+
 };
 
 const app = initializeApp(firebaseConfig);
 
-// EXPORTAÇÕES
+// FIREBASE SERVICES
 export const db = getFirestore(app);
 
 export const auth = getAuth(app);
 
 export const storage = getStorage(app);
-
-export const analytics = getAnalytics(app);
 
 export default app;
