@@ -1,28 +1,38 @@
 import { createBrowserRouter } from "react-router-dom";
 
-function Home() {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#000",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "32px",
-        fontWeight: "bold",
-      }}
-    >
-      🐦‍🔥 Fênix Warriors Online
-    </div>
-  );
-}
+import Home from "../pages/Home";
+import Login from "../pages/Login";
+import Dashboard from "../pages/Dashboard";
+import Financial from "./Financial";
+import ProtectedRoute from "./ProtectedRoute";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Home />,
+  },
+
+  {
+    path: "/login",
+    element: <Login />,
+  },
+
+  {
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+    path: "/financeiro",
+    element: (
+      <ProtectedRoute>
+        <Financial />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
