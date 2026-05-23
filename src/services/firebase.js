@@ -1,46 +1,23 @@
 import { initializeApp } from "firebase/app";
 
-import { getFirestore } from "firebase/firestore";
-
 import { getAuth } from "firebase/auth";
 
-import { getStorage } from "firebase/storage";
-
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBds6Q8iIq0UITHkSnK0aE4Xf9XkjNocKI",
-
-  authDomain: "fenix-warriors-ff72e.firebaseapp.com",
-
-  projectId: "fenix-warriors-ff72e",
-
-  storageBucket: "fenix-warriors-ff72e.firebasestorage.app",
-
-  messagingSenderId: "90891959036",
-
-  appId: "1:90891959036:web:c1d34de94f63c2fceaf579",
-
-  measurementId: "G-08YK41PSQ0",
+  apiKey: "AIzaSyAOb4DIg__xF1cOO_5u44tB2WybWnQKu2g",
+  authDomain: "fenix-warriors-17e37.firebaseapp.com",
+  projectId: "fenix-warriors-17e37",
+  storageBucket: "fenix-warriors-17e37.firebasestorage.app",
+  messagingSenderId: "364176960493",
+  appId: "1:364176960493:web:48150b563b354dbff355e4",
+  measurementId: "G-M4XSNTM2LE"
 };
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
-
 export const auth = getAuth(app);
 
-export const storage = getStorage(app);
-
-// Analytics seguro
-let analytics = null;
-
-isSupported().then((yes) => {
-  if (yes) {
-    analytics = getAnalytics(app);
-  }
-});
-
-export { analytics };
+export const db = getFirestore(app);
 
 export default app;
