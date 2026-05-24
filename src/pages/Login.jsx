@@ -11,7 +11,8 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] =
+    useState("");
 
   const [password, setPassword] =
     useState("");
@@ -26,11 +27,11 @@ export default function Login() {
         password
       );
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.log(error);
 
-      alert("Erro no login");
+      alert("Email ou senha inválidos");
     }
   }
 
@@ -40,14 +41,14 @@ export default function Login() {
         onSubmit={handleLogin}
         className="bg-zinc-900 p-10 rounded-2xl w-full max-w-md"
       >
-        <h1 className="text-white text-3xl font-bold mb-6">
-          🐦‍🔥 Fênix Warriors
+        <h1 className="text-4xl text-white font-bold mb-6">
+          🐦‍🔥 Login Fênix
         </h1>
 
         <input
           type="email"
-          placeholder="Email"
-          className="w-full p-3 rounded-lg mb-4 bg-zinc-800 text-white"
+          placeholder="Seu email"
+          className="w-full p-3 rounded-lg bg-zinc-800 text-white mb-4"
           value={email}
           onChange={(e) =>
             setEmail(e.target.value)
@@ -56,8 +57,8 @@ export default function Login() {
 
         <input
           type="password"
-          placeholder="Senha"
-          className="w-full p-3 rounded-lg mb-6 bg-zinc-800 text-white"
+          placeholder="Sua senha"
+          className="w-full p-3 rounded-lg bg-zinc-800 text-white mb-6"
           value={password}
           onChange={(e) =>
             setPassword(e.target.value)
