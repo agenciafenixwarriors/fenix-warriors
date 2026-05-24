@@ -1,52 +1,100 @@
 import { useEffect, useState } from "react";
-import { getStreamers } from "../services/firestore";
+import { db } from "../firebase";
+import {
+  collection,
+  getDocs,
+} from "firebase/firestore";
 
 export default function Dashboard() {
   const [streamers, setStreamers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function loadData() {
+    try {
+      const querySnapshot = await getDocs(collection(db, "streamers"));
+
+      const lista = [];
+
+      querySnapshot.forEach((doc) => {
+        lista.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+
+      setStreamers(lista);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao carregar dados do Firebase");
+    }
+
+    setLoading(false);
+  }
 
   useEffect(() => {
     loadData();
   }, []);
 
-  async function loadData() {
-    const data = await getStreamers();
-    setStreamers(data);
-  }
-
   return (
     <div
       style={{
-        padding: 30,
-        background: "#111",
         minHeight: "100vh",
-        color: "#fff",
+        background: "#0b0b0b",
+        color: "white",
+        padding: "30px",
       }}
     >
-      <h1>🐦‍🔥 Fênix Warriors Dashboard</h1>
+      <h1
+        style={{
+          fontSize: "32px",
+          marginBottom: "30px",
+        }}
+      >
+        🐦‍🔥 Fênix Warriors Dashboard
+      </h1>
 
-      <p>Total de streamers: {streamers.length}</p>
-
-      <div style={{ marginTop: 20 }}>
-        {streamers.map((streamer) => (
+      {loading ? (
+        <p>Carregando dados...</p>
+      ) : (
+        <>
           <div
-            key={streamer.id}
             style={{
-              background: "#222",
-              padding: 15,
-              borderRadius: 10,
-              marginBottom: 10,
+              marginBottom: "20px",
+              fontSize: "20px",
             }}
           >
-            <h3>{streamer.nickname || "Sem nome"}</h3>
-
-            <p>UID: {streamer.uid || "-"}</p>
-
-            <p>Família: {streamer.family || "-"}</p>
-
-            <p>Agência: {streamer.agency || "-"}</p>
+            Total de registros: {streamers.length}
           </div>
-        ))}
-      </div>
+
+          <div
+            style={{
+              display: "grid",
+              gap: "15px",
+            }}
+          >
+            {streamers.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  background: "#1a1a1a",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: "1px solid #333",
+                }}
+              >
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontSize: "14px",
+                  }}
+                >
+                  {JSON.stringify(item, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
