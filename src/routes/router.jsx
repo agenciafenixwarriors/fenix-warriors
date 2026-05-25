@@ -1,103 +1,124 @@
 import { createBrowserRouter } from "react-router-dom";
-import { useState } from "react";
-import * as XLSX from "xlsx";
-import { collection, addDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+import {
+  collection,
+  getDocs,
+} from "firebase/firestore";
+
 import { db } from "../services/firebase";
 
 function Home() {
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState([]);
+  const [dados, setDados] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  async function handleUpload(event) {
-    const files = Array.from(event.target.files);
-
-    if (!files.length) return;
-
-    setLoading(true);
-
-    const newLogs = [];
-
-    for (const file of files) {
+  useEffect(() => {
+    async function carregarDados() {
       try {
-        newLogs.push(`📥 Importando ${file.name}...`);
+        const snapshot = await getDocs(
+          collection(db, "streamers")
+        );
 
-        const data = await file.arrayBuffer();
+        const lista = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-        const workbook = XLSX.read(data);
+        console.log(lista);
 
-        const sheetName = workbook.SheetNames[0];
+        setDados(lista);
 
-        const sheet = workbook.Sheets[sheetName];
-
-        const json = XLSX.utils.sheet_to_json(sheet);
-
-        for (const item of json) {
-          await addDoc(collection(db, "streamers"), {
-            ...item,
-            importedFile: file.name,
-            importedAt: new Date().toISOString(),
-          });
-        }
-
-        newLogs.push(`✅ ${file.name}: ${json.length} registros importados.`);
       } catch (error) {
         console.error(error);
-
-        newLogs.push(`❌ Erro ao importar ${file.name}`);
+      } finally {
+        setLoading(false);
       }
-
-      setLogs([...newLogs]);
     }
 
-    setLoading(false);
-  }
+    carregarDados();
+  }, []);
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#000",
+        background: "#0f0f0f",
         color: "#fff",
-        padding: "40px",
+        padding: "30px",
         fontFamily: "Arial",
       }}
     >
       <h1
         style={{
-          fontSize: "42px",
-          marginBottom: "20px",
+          fontSize: "38px",
+          marginBottom: "10px",
         }}
       >
-        🐦‍🔥 Fênix Warriors Dashboard
+        🐦‍🔥 Fênix Warriors
       </h1>
 
-      <p>Importe múltiplas planilhas BIGO:</p>
-
-      <input
-        type="file"
-        multiple
-        accept=".xlsx,.xls"
-        onChange={handleUpload}
+      <p
         style={{
-          marginTop: "20px",
-          background: "#fff",
-          color: "#000",
-          padding: "10px",
-          borderRadius: "8px",
+          opacity: 0.7,
+          marginBottom: "30px",
         }}
-      />
+      >
+        Dashboard BIGO conectado ao Firebase
+      </p>
 
-      {loading && (
-        <p style={{ marginTop: "20px" }}>
-          ⏳ Processando arquivos...
-        </p>
+      {loading ? (
+        <h2>Carregando dados...</h2>
+      ) : (
+        <>
+          <div
+            style={{
+              marginBottom: "20px",
+              fontSize: "20px",
+            }}
+          >
+            Total de registros: {dados.length}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gap: "20px",
+            }}
+          >
+            {dados.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  background: "#1a1a1a",
+                  padding: "20px",
+                  borderRadius: "14px",
+                  border: "1px solid #333",
+                }}
+              >
+                {Object.entries(item).map(([chave, valor]) => (
+                  <div
+                    key={chave}
+                    style={{
+                      marginBottom: "10px",
+                      borderBottom: "1px solid #222",
+                      paddingBottom: "6px",
+                    }}
+                  >
+                    <strong
+                      style={{
+                        color: "#ff7b00",
+                      }}
+                    >
+                      {chave}:
+                    </strong>{" "}
+                    {String(valor)}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
       )}
-
-      <div style={{ marginTop: "30px" }}>
-        {logs.map((log, index) => (
-          <p key={index}>{log}</p>
-        ))}
-      </div>
     </div>
   );
 }
