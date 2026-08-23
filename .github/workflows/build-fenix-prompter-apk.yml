@@ -15,6 +15,7 @@ env:
   PROJECT_DIR: fenix-prompter-android
   APP_URL: https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter
   VERSION_URL: https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter-version
+  LOGO_URL: https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter-logo
 
 jobs:
   build-and-test:
@@ -23,32 +24,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Gradle 8.10.2
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-
-      - name: Test production web interface and update service
+      - name: Test production services
         run: |
           curl --fail --location --silent --show-error "$APP_URL" -o /tmp/fenix-prompter.html
           grep -qi '<!doctype html>' /tmp/fenix-prompter.html
           grep -q 'FÊNIX PROMPTER' /tmp/fenix-prompter.html
           test $(wc -c < /tmp/fenix-prompter.html) -gt 5000
           curl --fail --location --silent --show-error "$VERSION_URL" -o /tmp/version.json
-          grep -q '"latestVersion":"1.2.0"' /tmp/version.json
-          grep -q '"latestVersionCode":3' /tmp/version.json
-
+          grep -q '"latestVersion":"1.2.1"' /tmp/version.json
+          grep -q '"latestVersionCode":4' /tmp/version.json
+          curl --fail --location --silent --show-error "$LOGO_URL" -o /tmp/logo.jpg
+          test $(wc -c < /tmp/logo.jpg) -gt 1000
       - name: Compile, unit tests and Android lint
         working-directory: ${{ env.PROJECT_DIR }}
         run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
-
       - name: Validate APK package and signature
         run: |
           APK="${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk"
@@ -57,19 +55,17 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)
           "$APKSIGNER" verify --verbose "$APK"
           "$AAPT" dump badging "$APK" | grep "package: name='br.com.fenixwarriors.prompter'"
-          "$AAPT" dump badging "$APK" | grep "versionName='1.2.0'"
-          "$AAPT" dump badging "$APK" | grep "versionCode='3'"
-
+          "$AAPT" dump badging "$APK" | grep "versionName='1.2.1'"
+          "$AAPT" dump badging "$APK" | grep "versionCode='4'"
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp "${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk" output/FENIX-PROMPTER-v1.2.0.apk
-          sha256sum output/FENIX-PROMPTER-v1.2.0.apk > output/FENIX-PROMPTER-v1.2.0.apk.sha256
-
+          cp "${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk" output/FENIX-PROMPTER-v1.2.1.apk
+          sha256sum output/FENIX-PROMPTER-v1.2.1.apk > output/FENIX-PROMPTER-v1.2.1.apk.sha256
       - name: Upload tested installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: FENIX-PROMPTER-v1.2.0-TESTED
+          name: FENIX-PROMPTER-v1.2.1-TESTED
           path: output/*
           if-no-files-found: error
           retention-days: 30
