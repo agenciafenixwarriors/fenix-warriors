@@ -13,11 +13,13 @@ permissions:
 
 env:
   PROJECT_DIR: fenix-prompter-android
+  APP_URL: https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter
+  VERSION_URL: https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter-version
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,20 +35,41 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Build debug APK
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle --no-daemon clean assembleDebug
+      - name: Test production web interface and update service
+        run: |
+          curl --fail --location --silent --show-error "$APP_URL" -o /tmp/fenix-prompter.html
+          grep -qi '<!doctype html>' /tmp/fenix-prompter.html
+          grep -q 'FÊNIX PROMPTER' /tmp/fenix-prompter.html
+          test $(wc -c < /tmp/fenix-prompter.html) -gt 5000
+          curl --fail --location --silent --show-error "$VERSION_URL" -o /tmp/version.json
+          grep -q '"latestVersion":"1.2.0"' /tmp/version.json
+          grep -q '"latestVersionCode":3' /tmp/version.json
 
-      - name: Rename APK
+      - name: Compile, unit tests and Android lint
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
+
+      - name: Validate APK package and signature
+        run: |
+          APK="${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose "$APK"
+          "$AAPT" dump badging "$APK" | grep "package: name='br.com.fenixwarriors.prompter'"
+          "$AAPT" dump badging "$APK" | grep "versionName='1.2.0'"
+          "$AAPT" dump badging "$APK" | grep "versionCode='3'"
+
+      - name: Prepare APK
         run: |
           mkdir -p output
-          cp "${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk" output/FENIX-PROMPTER-v1.0.0.apk
-          sha256sum output/FENIX-PROMPTER-v1.0.0.apk > output/FENIX-PROMPTER-v1.0.0.apk.sha256
+          cp "${PROJECT_DIR}/app/build/outputs/apk/debug/app-debug.apk" output/FENIX-PROMPTER-v1.2.0.apk
+          sha256sum output/FENIX-PROMPTER-v1.2.0.apk > output/FENIX-PROMPTER-v1.2.0.apk.sha256
 
-      - name: Upload installable APK
+      - name: Upload tested installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: FENIX-PROMPTER-APK
+          name: FENIX-PROMPTER-v1.2.0-TESTED
           path: output/*
           if-no-files-found: error
           retention-days: 30
