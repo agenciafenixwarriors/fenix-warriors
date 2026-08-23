@@ -4,6 +4,8 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -29,6 +31,7 @@ import android.widget.Toast;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -37,9 +40,10 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends android.app.Activity {
     private static final String APP_URL = "https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter";
     private static final String VERSION_URL = "https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter-version";
+    private static final String LOGO_URL = "https://knzuhcccujtwzlhbsbss.supabase.co/functions/v1/fenix-prompter-logo";
     private static final String BIGO_PACKAGE = "sg.bigo.live";
-    private static final int VERSION_CODE = 3;
-    private static final String VERSION_NAME = "1.2.0";
+    private static final int VERSION_CODE = 4;
+    private static final String VERSION_NAME = "1.2.1";
 
     private WebView webView;
     private TextView overlayStatus;
@@ -68,8 +72,10 @@ public class MainActivity extends android.app.Activity {
 
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.fenix_logo);
+        logo.setScaleType(ImageView.ScaleType.CENTER_CROP);
         logo.setAdjustViewBounds(true);
-        header.addView(logo, new LinearLayout.LayoutParams(dp(52), dp(52)));
+        header.addView(logo, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        loadBrandLogo(logo);
 
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
@@ -140,7 +146,7 @@ public class MainActivity extends android.app.Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
-        s.setUserAgentString(s.getUserAgentString() + " FenixPrompterAndroid/1.2");
+        s.setUserAgentString(s.getUserAgentString() + " FenixPrompterAndroid/1.2.1");
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient(){
             @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
@@ -151,6 +157,26 @@ public class MainActivity extends android.app.Activity {
         root.addView(webView, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,0,1));
         setContentView(root);
         updateOverlayStatus();
+    }
+
+    private void loadBrandLogo(ImageView target) {
+        new Thread(() -> {
+            HttpURLConnection c = null;
+            try {
+                c = (HttpURLConnection)new URL(LOGO_URL).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(10000);
+                c.setRequestProperty("Accept","image/*");
+                if (c.getResponseCode() != 200) return;
+                try (InputStream in = c.getInputStream()) {
+                    Bitmap bmp = BitmapFactory.decodeStream(in);
+                    if (bmp != null) runOnUiThread(() -> target.setImageBitmap(bmp));
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (c != null) c.disconnect();
+            }
+        }).start();
     }
 
     private Button button(String text, int bg, int fg) {
@@ -262,7 +288,7 @@ public class MainActivity extends android.app.Activity {
         service.putExtra(OverlayService.EXTRA_TEXT,pendingText);
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) startForegroundService(service); else startService(service);
         Toast.makeText(this,"Teleprompter flutuante ativado.",Toast.LENGTH_SHORT).show();
-        if (openBigo) new Handler(Looper.getMainLooper()).postDelayed(this::launchBigo, 500);
+        if (openBigo) new Handler(Looper.getMainLooper()).postDelayed(this::launchBigo, 650);
     }
 
     private void launchBigo() {
