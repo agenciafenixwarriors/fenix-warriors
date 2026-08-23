@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -61,7 +62,7 @@ public class MainActivity extends android.app.Activity {
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setPadding(dp(8),0,0,0);
         TextView title = new TextView(this);
-        title.setText("FÊNIX PROMPTER"); title.setTextColor(0xFFFFCF69); title.setTextSize(18); title.setTypeface(null,1);
+        title.setText("FÊNIX PROMPTER"); title.setTextColor(0xFFFFCF69); title.setTextSize(18); title.setTypeface(null, Typeface.BOLD);
         TextView sub = new TextView(this);
         sub.setText("Agência & Família Fênix Warriors • v1.1.0"); sub.setTextColor(0xFFB9B0A4); sub.setTextSize(11);
         titles.addView(title); titles.addView(sub);
