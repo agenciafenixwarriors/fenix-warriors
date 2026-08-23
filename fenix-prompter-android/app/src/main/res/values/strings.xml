@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FÊNIX PROMPTER</string>
+    <string name="notification_channel">FÊNIX PROMPTER ativo</string>
+</resources>
