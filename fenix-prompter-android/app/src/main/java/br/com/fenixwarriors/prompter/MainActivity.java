@@ -139,7 +139,7 @@ public class MainActivity extends android.app.Activity {
         public void openOverlay(String text) {
             runOnUiThread(() -> {
                 if (text != null && !text.trim().isEmpty()) pendingText = text;
-                openOverlay();
+                MainActivity.this.openOverlay();
             });
         }
     }
