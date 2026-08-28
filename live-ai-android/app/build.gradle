@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'br.com.agenciafenixwarriors.liveai'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'br.com.agenciafenixwarriors.liveai'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        def supabaseUrl = project.findProperty('SUPABASE_URL') ?: ''
+        def supabaseKey = project.findProperty('SUPABASE_KEY') ?: ''
+        buildConfigField 'String', 'SUPABASE_URL', '"' + supabaseUrl + '"'
+        buildConfigField 'String', 'SUPABASE_KEY', '"' + supabaseKey + '"'
+    }
+
+    buildFeatures { buildConfig true }
+}
