@@ -8,7 +8,7 @@ import android.os.*;
 import android.provider.Settings;
 import android.text.InputType;
 import android.widget.*;
-import org.json.JSONObject;
+import org.json.*;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
@@ -16,6 +16,7 @@ public class MainActivity extends Activity {
     private final java.util.concurrent.ExecutorService io=Executors.newSingleThreadExecutor();
     private LinearLayout root;
     private JSONObject profile;
+    private JSONArray featureFlags=new JSONArray();
     private EditText goalInput, scriptInput;
 
     @Override public void onCreate(Bundle b){ super.onCreate(b); showLogin(); }
@@ -39,7 +40,7 @@ public class MainActivity extends Activity {
             String em=email.getText().toString().trim(); String pw=pass.getText().toString();
             if(em.isEmpty()||pw.isEmpty()){ status.setText("Informe e-mail e senha."); return; }
             login.setEnabled(false); status.setText("Validando acesso e BIGO ID...");
-            io.execute(()->{ try{ api.signIn(em,pw); JSONObject p=api.getMyProfile(); api.getFeatureFlags(); profile=p; runOnUiThread(()->showDashboard()); }catch(Exception e){ runOnUiThread(()->{ status.setText("Acesso negado. Verifique seus dados ou autorização da agência.\n"+friendly(e)); login.setEnabled(true); }); } });
+            io.execute(()->{ try{ api.signIn(em,pw); JSONObject p=api.getMyProfile(); JSONArray f=api.getFeatureFlags(); profile=p; featureFlags=f; runOnUiThread(this::showDashboard); }catch(Exception e){ runOnUiThread(()->{ status.setText("Acesso negado. Verifique seus dados ou autorização da agência.\n"+friendly(e)); login.setEnabled(true); }); } });
         });
 
         recover.setOnClickListener(v->{
@@ -50,6 +51,11 @@ public class MainActivity extends Activity {
         });
     }
 
+    private boolean enabled(String key){
+        for(int i=0;i<featureFlags.length();i++){ JSONObject o=featureFlags.optJSONObject(i); if(o!=null&&key.equals(o.optString("key"))) return o.optBoolean("enabled",false); }
+        return false;
+    }
+
     private void showDashboard(){
         base();
         String name=profile.optString("full_name","Streamer"); String bigo=profile.optString("bigo_id","-");
@@ -57,8 +63,8 @@ public class MainActivity extends Activity {
         root.addView(text("Olá, "+name+"  •  BIGO ID: "+bigo,15));
         root.addView(text("Configure a sessão antes de abrir a BIGO.",16));
 
-        goalInput=input("Meta desta live em Beans (ex.: 20000)",false); goalInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        scriptInput=input("Roteiro / teleprompter",false); scriptInput.setMinLines(5); scriptInput.setGravity(android.view.Gravity.TOP); scriptInput.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        goalInput=input("Meta desta live em Beans (ex.: 20000)",false); goalInput.setInputType(InputType.TYPE_CLASS_NUMBER); goalInput.setEnabled(enabled("goals"));
+        scriptInput=input("Roteiro / teleprompter",false); scriptInput.setMinLines(5); scriptInput.setGravity(android.view.Gravity.TOP); scriptInput.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES); scriptInput.setEnabled(enabled("teleprompter"));
         android.content.SharedPreferences prefs=getSharedPreferences("fenix_live_ai",MODE_PRIVATE);
         goalInput.setText(prefs.getString("goal","")); scriptInput.setText(prefs.getString("script",""));
         root.addView(goalInput); root.addView(scriptInput);
@@ -67,13 +73,14 @@ public class MainActivity extends Activity {
         Button strategy=button("🧠 Simular estratégia");
         Button overlay=button("⚙️ Autorizar botão flutuante");
         Button logout=button("Sair");
+        start.setEnabled(enabled("overlay")&&enabled("live_coach")); strategy.setEnabled(enabled("live_coach")); overlay.setEnabled(enabled("overlay"));
         root.addView(start); root.addView(strategy); root.addView(overlay); root.addView(logout);
         TextView preview=text("O FÊNIX SCORE aparecerá durante a transmissão.",16); root.addView(preview);
 
         strategy.setOnClickListener(v->{ int sc=CoachEngine.score(15,4,0,2,0,0); preview.setText("FÊNIX SCORE: "+sc+"/100 • "+CoachEngine.scoreLabel(sc)+"\n"+CoachEngine.advise(15,4,0,2,0,0,0,0,parseLong(goalInput.getText().toString()))); });
         overlay.setOnClickListener(v->requestOverlay());
         start.setOnClickListener(v->startOverlayAndBigo());
-        logout.setOnClickListener(v->{ api.setAccessToken(null); profile=null; showLogin(); });
+        logout.setOnClickListener(v->{ api.setAccessToken(null); profile=null; featureFlags=new JSONArray(); showLogin(); });
     }
 
     private void requestOverlay(){
@@ -82,12 +89,14 @@ public class MainActivity extends Activity {
     }
 
     private void startOverlayAndBigo(){
+        if(!enabled("overlay")||!enabled("live_coach")){ toast("Este recurso foi desativado pela administração."); return; }
         if(!Settings.canDrawOverlays(this)){ requestOverlay(); toast("Autorize 'Exibir sobre outros apps' e depois toque novamente em INICIAR."); return; }
         long goal=parseLong(goalInput.getText().toString()); String script=scriptInput.getText().toString().trim();
         getSharedPreferences("fenix_live_ai",MODE_PRIVATE).edit().putString("goal",goalInput.getText().toString()).putString("script",script).apply();
         Intent s=new Intent(this,OverlayService.class);
         s.putExtra("goalBeans",goal); s.putExtra("script",script); s.putExtra("token",api.getAccessToken());
         s.putExtra("userId",profile.optString("user_id")); s.putExtra("bigoId",profile.optString("bigo_id"));
+        s.putExtra("feature_goals",enabled("goals")); s.putExtra("feature_teleprompter",enabled("teleprompter")); s.putExtra("feature_stars",enabled("stars")); s.putExtra("feature_pk",enabled("pk"));
         if(Build.VERSION.SDK_INT>=26) startForegroundService(s); else startService(s);
         Intent bigo=getPackageManager().getLaunchIntentForPackage("sg.bigo.live");
         if(bigo!=null){ bigo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(bigo); }
