@@ -22,6 +22,7 @@ public class OverlayService extends Service {
     private final java.util.concurrent.ExecutorService io=Executors.newSingleThreadExecutor();
     private final SupabaseApi api=new SupabaseApi();
     private boolean compact=false;
+    private boolean featureGoals=true, featureTeleprompter=true, featureStars=true, featurePk=true;
 
     @Override public void onCreate(){
         super.onCreate(); createChannel(); startMs=SystemClock.elapsedRealtime();
@@ -32,6 +33,12 @@ public class OverlayService extends Service {
         if(i!=null){
             goalBeans=i.getLongExtra("goalBeans",0); script=i.getStringExtra("script"); if(script==null)script="";
             token=nvl(i.getStringExtra("token")); userId=nvl(i.getStringExtra("userId")); bigoId=nvl(i.getStringExtra("bigoId")); api.setAccessToken(token);
+            featureGoals=i.getBooleanExtra("feature_goals",true);
+            featureTeleprompter=i.getBooleanExtra("feature_teleprompter",true);
+            featureStars=i.getBooleanExtra("feature_stars",true);
+            featurePk=i.getBooleanExtra("feature_pk",true);
+            if(!featureGoals) goalBeans=0;
+            if(!featureTeleprompter) script="";
         }
         if(bubble==null) showBubble();
         if(sessionId==null && !token.isEmpty() && !userId.isEmpty() && !bigoId.isEmpty()) io.execute(()->{ try{ sessionId=api.startSession(userId,bigoId,goalBeans); }catch(Exception ignored){} });
@@ -44,7 +51,6 @@ public class OverlayService extends Service {
     private void createChannel(){ if(Build.VERSION.SDK_INT>=26){ NotificationChannel c=new NotificationChannel("fenix_live_ai","FÊNIX LIVE AI",NotificationManager.IMPORTANCE_LOW); getSystemService(NotificationManager.class).createNotificationChannel(c); } }
     private TextView t(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(Color.WHITE); v.setTextSize(sp); v.setPadding(16,10,16,10); return v; }
     private Button b(String s){ Button v=new Button(this); v.setText(s); v.setAllCaps(false); return v; }
-
     private int overlayType(){ return Build.VERSION.SDK_INT>=26?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY:WindowManager.LayoutParams.TYPE_PHONE; }
 
     private void showBubble(){
@@ -57,14 +63,18 @@ public class OverlayService extends Service {
         controls=new LinearLayout(this); controls.setOrientation(LinearLayout.VERTICAL); box.addView(controls);
 
         Button coach=b("🧠 COACH AGORA"), data=b("📊 Atualizar dados"), gift=b("🎁 + Presente"), star=b("⭐ + Star"), pkb=b("⚔️ + PK"), tele=b("📝 Teleprompter"), mini=b("— Minimizar"), close=b("Encerrar Coach");
-        controls.addView(coach); controls.addView(data); controls.addView(gift); controls.addView(star); controls.addView(pkb); controls.addView(tele); controls.addView(mini); controls.addView(close);
+        controls.addView(coach); controls.addView(data); controls.addView(gift);
+        if(featureStars) controls.addView(star);
+        if(featurePk) controls.addView(pkb);
+        if(featureTeleprompter) controls.addView(tele);
+        controls.addView(mini); controls.addView(close);
 
         coach.setOnClickListener(v->{ refreshCoach(); saveSnapshot(); });
         data.setOnClickListener(v->showDataDialog());
         gift.setOnClickListener(v->{ gifts++; showNumberDialog("Beans deste presente",value->{ beans+=value; refreshCoach(); saveSnapshot(); }); });
-        star.setOnClickListener(v->{ stars++; refreshCoach(); saveSnapshot(); });
-        pkb.setOnClickListener(v->{ pk++; refreshCoach(); saveSnapshot(); });
-        tele.setOnClickListener(v->toggleTeleprompter());
+        if(featureStars) star.setOnClickListener(v->{ stars++; refreshCoach(); saveSnapshot(); });
+        if(featurePk) pkb.setOnClickListener(v->{ pk++; refreshCoach(); saveSnapshot(); });
+        if(featureTeleprompter) tele.setOnClickListener(v->toggleTeleprompter());
         mini.setOnClickListener(v->toggleCompact(head));
         close.setOnClickListener(v->stopSelf());
 
@@ -78,9 +88,11 @@ public class OverlayService extends Service {
 
     private void refreshCoach(){
         int m=minutes(); int sc=CoachEngine.score(m,viewers,beans,comments,followers,gifts);
-        String goal=goalBeans>0?" • Meta "+beans+"/"+goalBeans+" Beans":" • "+beans+" Beans";
-        metrics.setText("⏱ "+m+" min • 👥 "+viewers+" • 💬 "+comments+" • +"+followers+" seguidores"+goal+" • ⭐ "+stars+" • ⚔️ "+pk);
-        advice.setText("FÊNIX SCORE "+sc+"/100 • "+CoachEngine.scoreLabel(sc)+"\n"+CoachEngine.advise(m,viewers,beans,comments,followers,gifts,stars,pk,goalBeans));
+        String goal=featureGoals&&goalBeans>0?" • Meta "+beans+"/"+goalBeans+" Beans":" • "+beans+" Beans";
+        String starText=featureStars?" • ⭐ "+stars:"";
+        String pkText=featurePk?" • ⚔️ "+pk:"";
+        metrics.setText("⏱ "+m+" min • 👥 "+viewers+" • 💬 "+comments+" • +"+followers+" seguidores"+goal+starText+pkText);
+        advice.setText("FÊNIX SCORE "+sc+"/100 • "+CoachEngine.scoreLabel(sc)+"\n"+CoachEngine.advise(m,viewers,beans,comments,followers,gifts,featureStars?stars:0,featurePk?pk:0,featureGoals?goalBeans:0));
     }
 
     private void showDataDialog(){
@@ -106,6 +118,7 @@ public class OverlayService extends Service {
     private long parseLong(String s){ try{return Long.parseLong(s.trim());}catch(Exception e){return 0;} }
 
     private void toggleTeleprompter(){
+        if(!featureTeleprompter) return;
         if(teleprompterView!=null){ wm.removeView(teleprompterView); teleprompterView=null; return; }
         if(script.trim().isEmpty()){ Toast.makeText(this,"Defina o roteiro no app antes de iniciar a live.",Toast.LENGTH_LONG).show(); return; }
         LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(10,8,10,8);
@@ -119,14 +132,15 @@ public class OverlayService extends Service {
 
     private void saveSnapshot(){
         if(sessionId==null||userId.isEmpty()||token.isEmpty()) return;
-        final int m=minutes(),v=viewers,c=comments,f=followers,g=gifts,s=stars,p=pk; final long be=beans; final String sid=sessionId;
+        final int m=minutes(),v=viewers,c=comments,f=followers,g=gifts,s=featureStars?stars:0,p=featurePk?pk:0; final long be=beans; final String sid=sessionId;
         io.execute(()->{ try{ api.snapshot(sid,userId,m,v,be,c,f,g,s,p); }catch(Exception ignored){} });
     }
 
     @Override public void onDestroy(){
         if(bubble!=null&&wm!=null) try{wm.removeView(bubble);}catch(Exception ignored){}
         if(teleprompterView!=null&&wm!=null) try{wm.removeView(teleprompterView);}catch(Exception ignored){}
-        if(sessionId!=null&&!token.isEmpty()){ final int sc=CoachEngine.score(minutes(),viewers,beans,comments,followers,gifts); final String sid=sessionId; io.execute(()->{try{api.finishSession(sid,beans,viewers,followers,gifts,stars,pk,sc);}catch(Exception ignored){}}); }
+        if(sessionId!=null&&!token.isEmpty()){ final int sc=CoachEngine.score(minutes(),viewers,beans,comments,followers,gifts); final String sid=sessionId; final int finalStars=featureStars?stars:0, finalPk=featurePk?pk:0; io.execute(()->{try{api.finishSession(sid,beans,viewers,followers,gifts,finalStars,finalPk,sc);}catch(Exception ignored){}}); }
+        io.shutdown();
         super.onDestroy();
     }
     @Override public android.os.IBinder onBind(Intent i){ return null; }
