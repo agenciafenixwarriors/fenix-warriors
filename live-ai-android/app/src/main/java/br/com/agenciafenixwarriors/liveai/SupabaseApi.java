@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 
 public class SupabaseApi {
     private String accessToken;
+    private static final String RECOVERY_REDIRECT = "fenixliveai://reset-password";
 
     public void setAccessToken(String token){ accessToken = token; }
     public String getAccessToken(){ return accessToken; }
@@ -19,7 +20,13 @@ public class SupabaseApi {
     }
 
     public void resetPassword(String email) throws Exception {
-        raw("POST","/auth/v1/recover",new JSONObject().put("email",email).toString(),false,false);
+        String path="/auth/v1/recover?redirect_to="+URLEncoder.encode(RECOVERY_REDIRECT,"UTF-8");
+        raw("POST",path,new JSONObject().put("email",email).toString(),false,false);
+    }
+
+    public void updatePassword(String newPassword) throws Exception {
+        if(accessToken==null||accessToken.isEmpty()) throw new SecurityException("Sessão de recuperação inválida ou expirada.");
+        raw("PUT","/auth/v1/user",new JSONObject().put("password",newPassword).toString(),true,false);
     }
 
     public JSONObject getMyProfile() throws Exception {
