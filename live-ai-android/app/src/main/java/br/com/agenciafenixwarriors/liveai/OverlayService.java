@@ -45,6 +45,8 @@ public class OverlayService extends Service {
     private TextView t(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(Color.WHITE); v.setTextSize(sp); v.setPadding(16,10,16,10); return v; }
     private Button b(String s){ Button v=new Button(this); v.setText(s); v.setAllCaps(false); return v; }
 
+    private int overlayType(){ return Build.VERSION.SDK_INT>=26?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY:WindowManager.LayoutParams.TYPE_PHONE; }
+
     private void showBubble(){
         wm=(WindowManager)getSystemService(WINDOW_SERVICE);
         LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(8,8,8,8);
@@ -63,15 +65,16 @@ public class OverlayService extends Service {
         star.setOnClickListener(v->{ stars++; refreshCoach(); saveSnapshot(); });
         pkb.setOnClickListener(v->{ pk++; refreshCoach(); saveSnapshot(); });
         tele.setOnClickListener(v->toggleTeleprompter());
-        mini.setOnClickListener(v->{ compact=!compact; controls.setVisibility(compact?View.GONE:View.VISIBLE); advice.setVisibility(compact?View.GONE:View.VISIBLE); metrics.setVisibility(compact?View.GONE:View.VISIBLE); head.setText(compact?"🐦‍🔥 FÊNIX":"🐦‍🔥 FÊNIX LIVE AI"); });
+        mini.setOnClickListener(v->toggleCompact(head));
         close.setOnClickListener(v->stopSelf());
 
-        int type=Build.VERSION.SDK_INT>=26?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY:WindowManager.LayoutParams.TYPE_PHONE;
-        WindowManager.LayoutParams lp=new WindowManager.LayoutParams(460,-2,type,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT);
+        WindowManager.LayoutParams lp=new WindowManager.LayoutParams(460,-2,overlayType(),WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT);
         lp.gravity=Gravity.TOP|Gravity.END; lp.x=12; lp.y=180;
-        head.setOnTouchListener(new View.OnTouchListener(){ float x,y; int ox,oy; public boolean onTouch(View v,MotionEvent e){ if(e.getAction()==MotionEvent.ACTION_DOWN){x=e.getRawX();y=e.getRawY();ox=lp.x;oy=lp.y;return true;} if(e.getAction()==MotionEvent.ACTION_MOVE){lp.x=ox-(int)(e.getRawX()-x);lp.y=oy+(int)(e.getRawY()-y);wm.updateViewLayout(box,lp);return true;} if(e.getAction()==MotionEvent.ACTION_UP){ if(Math.abs(e.getRawX()-x)<12&&Math.abs(e.getRawY()-y)<12){ compact=!compact; controls.setVisibility(compact?View.GONE:View.VISIBLE); advice.setVisibility(compact?View.GONE:View.VISIBLE); metrics.setVisibility(compact?View.GONE:View.VISIBLE); head.setText(compact?"🐦‍🔥 FÊNIX":"🐦‍🔥 FÊNIX LIVE AI"); } return true;} return false; }});
+        head.setOnTouchListener(new View.OnTouchListener(){ float x,y; int ox,oy; public boolean onTouch(View v,MotionEvent e){ if(e.getAction()==MotionEvent.ACTION_DOWN){x=e.getRawX();y=e.getRawY();ox=lp.x;oy=lp.y;return true;} if(e.getAction()==MotionEvent.ACTION_MOVE){lp.x=ox-(int)(e.getRawX()-x);lp.y=oy+(int)(e.getRawY()-y);wm.updateViewLayout(box,lp);return true;} if(e.getAction()==MotionEvent.ACTION_UP){ if(Math.abs(e.getRawX()-x)<12&&Math.abs(e.getRawY()-y)<12)toggleCompact(head); return true;} return false; }});
         bubble=box; wm.addView(bubble,lp); refreshCoach();
     }
+
+    private void toggleCompact(TextView head){ compact=!compact; controls.setVisibility(compact?View.GONE:View.VISIBLE); advice.setVisibility(compact?View.GONE:View.VISIBLE); metrics.setVisibility(compact?View.GONE:View.VISIBLE); head.setText(compact?"🐦‍🔥 FÊNIX":"🐦‍🔥 FÊNIX LIVE AI"); }
 
     private void refreshCoach(){
         int m=minutes(); int sc=CoachEngine.score(m,viewers,beans,comments,followers,gifts);
@@ -87,19 +90,16 @@ public class OverlayService extends Service {
         v.setText(String.valueOf(viewers)); c.setText(String.valueOf(comments)); f.setText(String.valueOf(followers)); be.setText(String.valueOf(beans));
         LinearLayout l=new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(30,10,30,0); l.addView(v);l.addView(c);l.addView(f);l.addView(be);
         AlertDialog d=new AlertDialog.Builder(this).setTitle("Atualizar desempenho").setView(l).setPositiveButton("Salvar",(x,w)->{ viewers=parseInt(v.getText().toString()); comments=parseInt(c.getText().toString()); followers=parseInt(f.getText().toString()); beans=parseLong(be.getText().toString()); refreshCoach(); saveSnapshot(); }).setNegativeButton("Cancelar",null).create();
-        if(Build.VERSION.SDK_INT>=26)d.getWindow(); d.getWindow();
-        d.getWindow();
-        d.setOnShowListener(x->{}); d.getWindow();
-        d.getWindow();
+        if(d.getWindow()!=null)d.getWindow().setType(overlayType());
         d.show();
-        if(Build.VERSION.SDK_INT>=26) d.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); else d.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
     }
 
     private interface LongCallback{ void run(long value); }
     private void showNumberDialog(String title,LongCallback cb){
         EditText e=new EditText(this); e.setInputType(InputType.TYPE_CLASS_NUMBER); e.setHint("0");
         AlertDialog d=new AlertDialog.Builder(this).setTitle(title).setView(e).setPositiveButton("Adicionar",(x,w)->cb.run(parseLong(e.getText().toString()))).setNegativeButton("Cancelar",null).create();
-        d.show(); if(Build.VERSION.SDK_INT>=26)d.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); else d.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
+        if(d.getWindow()!=null)d.getWindow().setType(overlayType());
+        d.show();
     }
 
     private int parseInt(String s){ try{return Integer.parseInt(s.trim());}catch(Exception e){return 0;} }
@@ -112,8 +112,7 @@ public class OverlayService extends Service {
         GradientDrawable bg=new GradientDrawable(); bg.setColor(0xDD000000); bg.setCornerRadius(24); bg.setStroke(2,0xFFFFB300); box.setBackground(bg);
         TextView h=t("📝 TELEPROMPTER • arraste para mover",14), body=t(script,20); box.addView(h); ScrollView sv=new ScrollView(this); sv.addView(body); box.addView(sv,new LinearLayout.LayoutParams(-1,280));
         Button close=b("Fechar teleprompter"); box.addView(close); close.setOnClickListener(v->toggleTeleprompter());
-        int type=Build.VERSION.SDK_INT>=26?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY:WindowManager.LayoutParams.TYPE_PHONE;
-        WindowManager.LayoutParams lp=new WindowManager.LayoutParams(650,-2,type,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT); lp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL; lp.y=120;
+        WindowManager.LayoutParams lp=new WindowManager.LayoutParams(650,-2,overlayType(),WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT); lp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL; lp.y=120;
         h.setOnTouchListener(new View.OnTouchListener(){float x,y;int ox,oy;public boolean onTouch(View v,MotionEvent e){if(e.getAction()==0){x=e.getRawX();y=e.getRawY();ox=lp.x;oy=lp.y;return true;}if(e.getAction()==2){lp.x=ox+(int)(e.getRawX()-x);lp.y=oy-(int)(e.getRawY()-y);wm.updateViewLayout(box,lp);return true;}return false;}});
         teleprompterView=box; wm.addView(box,lp);
     }
