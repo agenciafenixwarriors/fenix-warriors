@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    { "source": "/boost", "destination": "/boost.html" },
+    { "source": "/((?!assets/|boost$|boost.html$).*)", "destination": "/index.html" }
   ]
 }
