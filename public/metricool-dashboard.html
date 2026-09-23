@@ -93,7 +93,7 @@ button,input,select{font:inherit}.hidden{display:none!important}.muted{color:var
 <div id="modal" class="modal hidden"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle"></h3><button class="x" id="closeModal">×</button></div><div id="modalBody"></div></div></div>
 
 <script>
-const SUPA="${SUPABASE_URL}",KEY="${PUBLISHABLE_KEY}",FN=SUPA+"/functions/v1/metricool-dashboard";
+const SUPA="https://knzuhcccujtwzlhbsbss.supabase.co",KEY="sb_publishable_zXs9CoVPbqA_DbrEsHKMvg_RwHUByQC",FN=SUPA+"/functions/v1/metricool-dashboard";
 let state={tab:"scheduled",data:null,charts:{}};
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
