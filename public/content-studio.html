@@ -36,7 +36,7 @@ function logout(){localStorage.removeItem("fg_access_token");localStorage.remove
 async function login(){const e=$("loginError");e.classList.add("hidden");const r=await fetch(SUPA+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({email:$("email").value.trim(),password:$("password").value})});const d=await r.json();if(!r.ok){e.textContent=d.error_description||d.msg||"Login inválido";e.classList.remove("hidden");return}localStorage.setItem("fg_access_token",d.access_token);localStorage.setItem("fg_refresh_token",d.refresh_token||"");showApp();load()}
 async function refreshSession(){const rt=localStorage.getItem("fg_refresh_token");if(!rt)return false;const r=await fetch(SUPA+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({refresh_token:rt})});if(!r.ok)return false;const d=await r.json();localStorage.setItem("fg_access_token",d.access_token);if(d.refresh_token)localStorage.setItem("fg_refresh_token",d.refresh_token);return true}
 function fmt(v){return new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(v))}
-function localDT(v){const d=new Date(v);const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(d);return p.replace(" ","T")}
+function localDT(v){const d=new Date(v);const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(d);return p.replace(" ","T")}function dateRange(){const now=new Date();const br=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);const s=new Date(br+"T12:00:00-03:00");const e=new Date(s.getTime()+7*86400000);const to=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(e);return {from:br,to}}
 async function restJson(path,retry=true){
  const r=await fetch(SUPA+"/rest/v1/"+path,{headers:{Authorization:"Bearer "+tok(),apikey:KEY}});
  if(r.status===401&&retry&&await refreshSession())return restJson(path,false);
@@ -48,8 +48,8 @@ async function load(){
  $("sync").textContent="Carregando dados…";
  try{
    const [queue,media,videos]=await Promise.all([
-     restJson("fg_publication_queue?select=id,plan_date,slot,network,scheduled_at,concept_code,content_type,caption,cta,hashtags,approval_status,approval_note,approved_at,metricool_post_id,external_url,media_asset_id&plan_date=gte.2026-09-23&plan_date=lte.2026-09-29&order=scheduled_at.asc"),
-     restJson("fg_media_library?select=id,concept_code,title,media_type,format,width,height,source_url,thumbnail_url,alt_text,status,metadata&order=concept_code.asc,format.asc"),
+     restJson("fg_publication_queue?select=id,plan_date,slot,network,scheduled_at,concept_code,content_type,caption,cta,hashtags,approval_status,approval_note,approved_at,metricool_post_id,external_url,media_asset_id&plan_date=gte."+dateRange().from+"&plan_date=lte."+dateRange().to+"&order=scheduled_at.asc"),
+     restJson("fg_media_library?select=id,concept_code,title,media_type,format,width,height,source_url,thumbnail_url,alt_text,status,metadata&status=eq.ready&order=concept_code.asc,format.asc"),
      restJson("fg_video_jobs?select=id,title,heygen_video_id,status,video_url,subtitle_url,metadata,created_at,updated_at&order=created_at.desc")
    ]);
    const mediaMap=Object.fromEntries(media.map(x=>[x.id,x]));
