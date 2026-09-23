@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/boost", "destination": "/boost.html" },
-    { "source": "/((?!assets/|boost$|boost.html$).*)", "destination": "/index.html" }
+    { "source": "/publicacoes", "destination": "/metricool-dashboard.html" },
+    { "source": "/((?!assets/|boost$|boost.html$|publicacoes$|metricool-dashboard.html$).*)", "destination": "/index.html" }
   ]
 }
