@@ -37,7 +37,38 @@ async function login(){const e=$("loginError");e.classList.add("hidden");const r
 async function refreshSession(){const rt=localStorage.getItem("fg_refresh_token");if(!rt)return false;const r=await fetch(SUPA+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({refresh_token:rt})});if(!r.ok)return false;const d=await r.json();localStorage.setItem("fg_access_token",d.access_token);if(d.refresh_token)localStorage.setItem("fg_refresh_token",d.refresh_token);return true}
 function fmt(v){return new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(v))}
 function localDT(v){const d=new Date(v);const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(d);return p.replace(" ","T")}
-async function load(retry=true){if(!tok())return;const r=await fetch(API+"?from=2026-09-23&to=2026-09-29",{headers:{Authorization:"Bearer "+tok(),apikey:KEY}});if(r.status===401&&retry&&await refreshSession())return load(false);if(!r.ok){if(r.status===401)return logout();$("sync").textContent="Erro ao carregar";return}state.data=await r.json();$("kp").textContent=state.data.counts.pending_approval||0;$("ka").textContent=state.data.counts.approved||0;$("ks").textContent=(state.data.counts.scheduled||0)+(state.data.counts.published||0);$("km").textContent=state.data.media.length;const mediaTab=document.querySelector(".tab[data-tab=\"media\"]");if(mediaTab)mediaTab.textContent="Biblioteca ("+state.data.media.length+"+"+(state.data.videos||[]).length+")";$("sync").textContent="Atualizado: "+new Date().toLocaleTimeString("pt-BR");render()}
+async function restJson(path,retry=true){
+ const r=await fetch(SUPA+"/rest/v1/"+path,{headers:{Authorization:"Bearer "+tok(),apikey:KEY}});
+ if(r.status===401&&retry&&await refreshSession())return restJson(path,false);
+ if(!r.ok){let msg="HTTP "+r.status;try{const e=await r.json();msg=e.message||e.error||msg}catch{}throw new Error(msg)}
+ return r.json()
+}
+async function load(){
+ if(!tok())return;
+ $("sync").textContent="Carregando dados…";
+ try{
+   const [queue,media,videos]=await Promise.all([
+     restJson("fg_publication_queue?select=id,plan_date,slot,network,scheduled_at,concept_code,content_type,caption,cta,hashtags,approval_status,approval_note,approved_at,metricool_post_id,external_url,media_asset_id&plan_date=gte.2026-09-23&plan_date=lte.2026-09-29&order=scheduled_at.asc"),
+     restJson("fg_media_library?select=id,concept_code,title,media_type,format,width,height,source_url,thumbnail_url,alt_text,status,metadata&order=concept_code.asc,format.asc"),
+     restJson("fg_video_jobs?select=id,title,heygen_video_id,status,video_url,subtitle_url,metadata,created_at,updated_at&order=created_at.desc")
+   ]);
+   const mediaMap=Object.fromEntries(media.map(x=>[x.id,x]));
+   const joined=queue.map(x=>({...x,media:mediaMap[x.media_asset_id]||null}));
+   const counts=joined.reduce((a,x)=>{a[x.approval_status]=(a[x.approval_status]||0)+1;return a},{});
+   state.data={queue:joined,media,videos,counts};
+   $("kp").textContent=counts.pending_approval||0;
+   $("ka").textContent=counts.approved||0;
+   $("ks").textContent=(counts.scheduled||0)+(counts.published||0);
+   $("km").textContent=media.length;
+   const mediaTab=document.querySelector('.tab[data-tab="media"]');
+   if(mediaTab)mediaTab.textContent="Biblioteca ("+media.length+"+"+videos.length+")";
+   $("sync").textContent="Atualizado: "+new Date().toLocaleTimeString("pt-BR");
+   render();
+ }catch(e){
+   $("sync").innerHTML='<span style="color:#ff9da0">Falha ao carregar: '+esc(e.message||e)+'</span>';
+   $("content").innerHTML='<div class="empty"><b>Não foi possível carregar os dados.</b><br>'+esc(e.message||e)+'<br><br><button class="btn gold" onclick="load()">Tentar novamente</button></div>';
+ }
+}
 function statusName(s){return({pending_approval:"Pendente",approved:"Aprovada",rejected:"Rejeitada",scheduled:"Agendada",published:"Publicada",failed:"Falhou"})[s]||s}
 function filtered(){const n=$("network").value,s=$("status").value,q=$("search").value.toLowerCase();return state.data.queue.filter(x=>(!n||x.network===n)&&(!s||x.approval_status===s)&&(!q||JSON.stringify(x).toLowerCase().includes(q)))}
 function render(){if(!state.data)return;$("filters").classList.toggle("hidden",state.tab!=="queue");if(state.tab==="queue")renderQueue();if(state.tab==="media")renderMedia();if(state.tab==="lives")renderLives()}
