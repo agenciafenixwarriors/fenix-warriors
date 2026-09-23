@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.FenixGrowth" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/fenix_black</item>
+        <item name="android:navigationBarColor">@color/fenix_black</item>
+        <item name="android:windowBackground">@color/fenix_black</item>
+        <item name="android:colorAccent">@color/fenix_gold</item>
+    </style>
+</resources>
