@@ -10,17 +10,137 @@ const stageKey=s=>({"Desafio Fênix":"desafio","Ativação":"ativacao"}[s]||s.to
 const stageLabel=s=>({descoberto:"Descoberto",qualificado:"Qualificado",contatado:"Contatado",respondeu:"Respondeu",interessado:"Interessado",candidatura:"Candidatura",entrevista:"Entrevista",family:"Family",familia:"Family",desafio:"Desafio Fênix",challenge:"Desafio Fênix",agency:"Agency",agencia:"Agency",ativacao:"Ativação",performance:"Performance"}[(s||"").toLowerCase()]||s||"Descoberto");
 
 async function sb(path,{method="GET",body,token,prefer}={}){
-  const r=await fetch(`${SUPABASE_URL}${path}`,{method,headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token||SUPABASE_KEY}`,"Content-Type":"application/json",...(prefer?{Prefer:prefer}:{})},body:body?JSON.stringify(body):undefined});
-  if(!r.ok){let msg=`Erro ${r.status}`;try{const e=await r.json();msg=e.message||e.error_description||e.details||msg}catch{}throw new Error(msg)}
-  if(r.status===204)return null; const t=await r.text(); return t?JSON.parse(t):null;
+  // A publishable API key is NOT a JWT. Supply Bearer only for authenticated requests.
+  const headers={apikey:SUPABASE_KEY,"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{}),...(prefer?{Prefer:prefer}:{})};
+  const r=await fetch(`${SUPABASE_URL}${path}`,{method,headers,body:body!==undefined?JSON.stringify(body):undefined});
+  if(!r.ok){
+    let msg=`Erro ${r.status}`,code="";
+    try{const e=await r.json();msg=e.msg||e.message||e.error_description||e.details||msg;code=e.error_code||e.code||""}catch{}
+    const err=new Error(msg);err.status=r.status;err.code=code;throw err;
+  }
+  if(r.status===204)return null;
+  const t=await r.text();return t?JSON.parse(t):null;
 }
 const token=()=>sessionStorage.getItem("fenix_token")||"";
 const user=()=>{try{return JSON.parse(sessionStorage.getItem("fenix_user")||"{}")}catch{return {}}};
 
 function Login(){
-  const nav=useNavigate(); const[email,setEmail]=useState(""); const[password,setPassword]=useState(""); const[err,setErr]=useState(""); const[busy,setBusy]=useState(false);
-  async function submit(e){e.preventDefault();setBusy(true);setErr("");try{const d=await sb("/auth/v1/token?grant_type=password",{method:"POST",body:{email,password}});sessionStorage.setItem("fenix_token",d.access_token);sessionStorage.setItem("fenix_user",JSON.stringify(d.user||{}));nav("/")}catch{setErr("Não foi possível entrar. Verifique e-mail e senha.")}finally{setBusy(false)}}
-  return <div className="auth-page"><form className="auth-card" onSubmit={submit}><div className="crest big">🔥</div><p>NOVA ERA</p><h1>FÊNIX OS 2.0</h1><span>Central operacional de recrutamento, desenvolvimento e performance.</span><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary full" disabled={busy}>{busy?"Entrando...":"Entrar no ecossistema"}</button><Link to="/candidatura">Quero ser Streamer Fênix</Link></form></div>
+  const nav=useNavigate();
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[showPassword,setShowPassword]=useState(false);
+  const[err,setErr]=useState("");
+  const[busy,setBusy]=useState(false);
+  async function submit(e){
+    e.preventDefault();setBusy(true);setErr("");
+    try{
+      const d=await sb("/auth/v1/token?grant_type=password",{method:"POST",body:{email:email.trim().toLowerCase(),password}});
+      if(!d?.access_token||!d?.user)throw Error("O servidor não confirmou a sessão.");
+      sessionStorage.setItem("fenix_token",d.access_token);
+      sessionStorage.setItem("fenix_refresh_token",d.refresh_token||"");
+      sessionStorage.setItem("fenix_user",JSON.stringify(d.user));
+      nav("/");
+    }catch(e){
+      if(e.code==="invalid_credentials"||e.status===400&&/invalid login credentials/i.test(e.message))
+        setErr("A autenticação recusou este e-mail e senha. Confira se o preenchimento automático usou uma senha antiga. Se necessário, escolha 'Esqueci minha senha'.");
+      else if(e.status===429)setErr("Muitas tentativas em sequência. Aguarde o limite de segurança do servidor antes de tentar novamente.");
+      else if(e.status>=500)setErr("O serviço de autenticação está temporariamente indisponível. Tente novamente.");
+      else setErr("Não foi possível autenticar. Verifique a conexão e tente novamente.");
+    }finally{setBusy(false)}
+  }
+  return <div className="auth-page"><form className="auth-card" onSubmit={submit}>
+    <div className="crest big">🔥</div><p>NOVA ERA</p><h1>FÊNIX OS 2.0</h1>
+    <span>Central operacional de recrutamento, desenvolvimento e performance.</span>
+    <label>E-mail<input type="email" name="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+    <label>Senha<input type={showPassword?"text":"password"} name="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:11,gap:14}}>
+      <label style={{display:"flex",alignItems:"center",gap:7,marginTop:0,fontSize:12}}><input type="checkbox" checked={showPassword} onChange={e=>setShowPassword(e.target.checked)} style={{width:16,height:16,margin:0}}/> Mostrar senha</label>
+      <Link to="/recuperar-senha" style={{margin:0,fontSize:12}}>Esqueci minha senha</Link>
+    </div>
+    {err&&<div className="error" role="alert">{err}</div>}
+    <button className="primary full" disabled={busy}>{busy?"Entrando…":"Entrar no ecossistema"}</button>
+    <Link to="/candidatura">Quero ser Streamer Fênix</Link>
+  </form></div>;
+}
+
+function RecuperarSenha(){
+  const[email,setEmail]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[done,setDone]=useState(false);
+  const[err,setErr]=useState("");
+  async function requestRecovery(e){
+    e.preventDefault();setBusy(true);setErr("");
+    try{
+      // Redirect destination must be permitted in Supabase Auth > URL Configuration.
+      const redirect=window.location.origin+"/redefinir-senha";
+      await sb("/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),{method:"POST",body:{email:email.trim().toLowerCase()}});
+      setDone(true);
+    }catch(e){
+      if(e.status===429)setErr("Limite de solicitações atingido. Tente novamente mais tarde.");
+      else if(e.status>=500)setErr("Não foi possível enviar o e-mail agora. Verifique as configurações de SMTP do projeto.");
+      else setErr("Não foi possível solicitar o link de recuperação. Confira o e-mail e tente novamente.");
+    }finally{setBusy(false)}
+  }
+  return <div className="auth-page"><form className="auth-card" onSubmit={requestRecovery}>
+    <div className="crest big">🔥</div><p>ACESSO SEGURO</p><h1>Recuperar senha</h1>
+    {done?<><span>Se este e-mail estiver cadastrado, você receberá as instruções para redefinir a senha. Confira também a caixa de spam. Não compartilhe o link.</span><Link to="/login">Voltar ao login</Link></>:
+      <><span>Informe o e-mail da sua conta. Você receberá um link individual de recuperação, sem alterar suas permissões de acesso.</span>
+      <label>E-mail<input autoComplete="email" type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+      {err&&<div className="error" role="alert">{err}</div>}
+      <button className="primary full" disabled={busy}>{busy?"Solicitando…":"Enviar link de recuperação"}</button>
+      <Link to="/login">Voltar ao login</Link></>}
+  </form></div>;
+}
+
+function RedefinirSenha(){
+  const[access,setAccess]=useState("");
+  const[invalid,setInvalid]=useState("");
+  const[password,setPassword]=useState("");
+  const[confirm,setConfirm]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[done,setDone]=useState(false);
+  const[err,setErr]=useState("");
+  useEffect(()=>{
+    const h=new URLSearchParams(window.location.hash.replace(/^#/,""));
+    const query=new URLSearchParams(window.location.search);
+    const error=h.get("error_description")||query.get("error_description");
+    const accessToken=h.get("access_token");
+    const isRecovery=h.get("type")==="recovery";
+    // Avoid leaving access tokens in the URL and browser history.
+    if(error)setInvalid("Este link é inválido ou expirou. Solicite um novo link.");
+    else if(isRecovery&&accessToken)setAccess(accessToken);
+    else if(query.get("token_hash")&&query.get("type")==="recovery"){
+      sb("/auth/v1/verify",{method:"POST",body:{type:"recovery",token_hash:query.get("token_hash")}})
+        .then(d=>d?.access_token?setAccess(d.access_token):setInvalid("Não foi possível confirmar o link."))
+        .catch(()=>setInvalid("Este link não pôde ser confirmado. Solicite um novo."));
+    }else setInvalid("O link de recuperação está incompleto. Solicite um novo link.");
+    window.history.replaceState(null,"",window.location.pathname);
+  },[]);
+  async function save(e){
+    e.preventDefault();
+    if(password.length<10){setErr("Escolha uma senha com pelo menos 10 caracteres.");return}
+    if(password!==confirm){setErr("As duas senhas não coincidem.");return}
+    setBusy(true);setErr("");
+    try{
+      await sb("/auth/v1/user",{method:"PUT",token:access,body:{password}});
+      setAccess("");setDone(true);setPassword("");setConfirm("");
+    }catch(e){
+      setErr(e.status===401?"A sessão de recuperação expirou. Solicite um novo link.":"Não foi possível atualizar a senha. Solicite um novo link e tente novamente.");
+    }finally{setBusy(false)}
+  }
+  return <div className="auth-page"><div className="auth-card">
+    <div className="crest big">🔥</div><p>SEGURANÇA FÊNIX</p><h1>Nova senha</h1>
+    {done?<><span>Senha atualizada. Entre com a nova senha no Fênix OS.</span><Link className="primary full" to="/login">Ir para o login</Link></>:
+    invalid?<><div className="error" role="alert">{invalid}</div><Link to="/recuperar-senha">Solicitar novo link</Link></>:
+    !access?<span>Verificando o link de recuperação…</span>:
+    <form onSubmit={save}>
+      <span>Escolha uma senha forte e não a compartilhe.</span>
+      <label>Nova senha<input type="password" minLength={10} required autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>
+      <label>Confirmar nova senha<input type="password" minLength={10} required autoComplete="new-password" value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>
+      {err&&<div className="error" role="alert">{err}</div>}
+      <button className="primary full" disabled={busy}>{busy?"Salvando…":"Redefinir minha senha"}</button>
+    </form>}
+  </div></div>;
 }
 
 function Candidatura(){
@@ -113,4 +233,4 @@ function InterviewModal({leads,onClose,onSave}){const[f,setF]=useState({lead_id:
 function EventModal({onClose,onSave}){const[f,setF]=useState({name:"",event_type:"internal",starts_at:"",platform:"BIGO LIVE",official:false});function submit(e){e.preventDefault();onSave({...f,starts_at:new Date(f.starts_at).toISOString()})}return <Modal onClose={onClose}><form onSubmit={submit}><p className="eyebrow">FÊNIX LIVE</p><h2>Novo evento</h2><label>Nome<input required value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></label><div className="grid2"><label>Tipo<select value={f.event_type} onChange={e=>setF({...f,event_type:e.target.value})}><option value="internal">Interno</option><option value="platform">Plataforma</option></select></label><label>Data e hora<input type="datetime-local" required value={f.starts_at} onChange={e=>setF({...f,starts_at:e.target.value})}/></label></div><label>Plataforma<input value={f.platform} onChange={e=>setF({...f,platform:e.target.value})}/></label><label className="check"><input type="checkbox" checked={f.official} onChange={e=>setF({...f,official:e.target.checked})}/> Evento oficial da plataforma</label><div className="modal-actions"><button type="button" className="ghost" onClick={onClose}>Cancelar</button><button className="primary">Criar evento</button></div></form></Modal>}
 function Modal({children,onClose}){return <div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>{children}</div></div>}
 
-export default createBrowserRouter([{path:"/login",element:<Login/>},{path:"/candidatura",element:<Candidatura/>},{path:"*",element:<Dashboard/>}]);
+export default createBrowserRouter([{path:"/login",element:<Login/>},{path:"/recuperar-senha",element:<RecuperarSenha/>},{path:"/redefinir-senha",element:<RedefinirSenha/>},{path:"/candidatura",element:<Candidatura/>},{path:"*",element:<Dashboard/>}]);
