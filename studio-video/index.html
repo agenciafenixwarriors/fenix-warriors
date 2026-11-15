@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#181513">
+<meta name="description" content="Fênix Video Studio — criador de composições para vídeos da Agência e Família Fênix Warriors.">
+<title>Fênix Video Studio | MVP</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="symbol" aria-hidden="true">🐦‍🔥</span><div><b>FÊNIX <em>VIDEO</em> STUDIO</b><small>Agência Fênix Warriors · laboratório criativo</small></div></div>
+  <span class="status">MVP · composição Hyperframes</span>
+</header>
+<main class="shell">
+<section class="editor" aria-labelledby="editorTitle">
+  <div class="eyebrow">01 / DIREÇÃO CRIATIVA</div><h1 id="editorTitle">Seu vídeo começa aqui.</h1>
+  <p class="muted">Personalize o título e a imagem, escolha uma narração e toque em “Gravar vídeo pronto”. O aplicativo prepara o vídeo para você.</p>
+  <div class="fields">
+    <label>Modelo<select id="template"><option value="recruitment">Recrutamento</option><option value="event">Evento / PK</option><option value="goals">Metas e resultados</option><option value="offer">Oferta comercial</option></select></label>
+    <label>Formato<select id="format"><option value="portrait">Vertical 9:16</option><option value="square">Quadrado 1:1</option><option value="landscape">Horizontal 16:9</option></select></label>
+    <label class="wide">Título principal<input id="headline" maxlength="85" value="Sua história pode brilhar." /></label>
+    <label class="wide">Subtítulo<textarea id="subtitle" rows="2" maxlength="180">Transforme talento em oportunidades com a Agência Fênix Warriors.</textarea></label>
+    <label>Assinatura / Host<input id="host" maxlength="58" value="AGÊNCIA FÊNIX WARRIORS" /></label>
+    <label>Chamada final<input id="cta" maxlength="75" value="ENTRE PARA NOSSO TIME" /></label>
+    <label>Duração (segundos)<select id="duration"><option value="8">8 segundos</option><option value="12" selected>12 segundos</option><option value="15">15 segundos</option></select></label>
+    <label>Estética<select id="theme"><option value="ivory">Marfim + dourado</option><option value="dark">Preto + vermelho</option></select></label>
+  </div>
+  <div class="uploadRow"><label class="fileLabel"> <span>Imagem de fundo</span><input type="file" id="background" accept="image/png,image/jpeg,image/webp"><small>PNG / JPG / WebP · até 5 MB</small></label><label class="fileLabel"><span>Logomarca oficial</span><input type="file" id="logo" accept="image/png,image/jpeg,image/webp"><small>Opcional · sem armazenamento remoto</small></label></div>
+  <div id="uploadMessage" class="notice" aria-live="polite"></div>
+  <section class="simple-steps" aria-labelledby="stepsTitle">
+ <div class="eyebrow">03 / FINALIZAR SEM COMPLICAÇÃO</div>
+ <h2 id="stepsTitle">Monte, narre e salve seu vídeo</h2>
+ <p class="muted">Escolha a narração. Depois toque no botão vermelho para gravar o vídeo pronto.</p>
+ <div class="step"><span class="stepNumber">1</span><div><b>Escolha como será a voz</b><label class="blockLabel" for="voiceMode">Narração</label>
+ <select id="voiceMode" class="simpleSelect"><option value="none">Sem narração</option><option value="ai">Gerar voz automática em português</option><option value="mic">Gravar minha voz</option><option value="file">Usar áudio do celular</option></select>
+ <div id="aiControls" class="voiceControls" hidden>
+  <label class="blockLabel" for="narrationText">Texto que será falado</label>
+  <textarea id="narrationText" rows="3" maxlength="550">Sua história pode brilhar. Transforme talento em oportunidades com a Agência Fênix Warriors. Entre para nosso time!</textarea>
+  <label class="blockLabel" for="voiceSelect">Voz em português brasileiro</label>
+  <select id="voiceSelect" class="simpleSelect"><option value="pt_BR-faber-medium">Voz brasileira 1 · Faber</option><option value="pt_BR-edresson-low">Voz brasileira 2 · Edresson</option></select>
+  <button class="secondary" id="generateVoice" type="button">🔊 Criar e ouvir narração</button>
+  <p class="tiny">Grátis, sem conta extra. O primeiro uso baixa um modelo de voz no dispositivo (aproximadamente 65 MB); pode ser mais lento em celulares básicos.</p>
+ </div>
+ <div id="micControls" class="voiceControls" hidden><button class="secondary" id="startMic" type="button">🎙️ Gravar minha voz</button><button class="secondary" id="stopMic" type="button" hidden>⏹ Parar gravação</button><p class="tiny">O aplicativo pedirá autorização para acessar o microfone. Sua voz fica apenas nesta sessão do navegador.</p></div>
+ <div id="fileControls" class="voiceControls" hidden><label class="blockLabel" for="audioFile">Escolher áudio gravado</label><input type="file" id="audioFile" accept="audio/*"><p class="tiny">MP3, WAV ou M4A, até 15 MB.</p></div>
+ <audio id="voicePreview" controls hidden aria-label="Prévia da narração"></audio>
+ </div></div>
+ <div class="step"><span class="stepNumber">2</span><div><b>Grave o vídeo já montado</b><p class="tiny">As imagens, os títulos e a narração serão combinados automaticamente. Não é necessário gravar a tela.</p><button class="primary recordPrimary" id="recordVideo" type="button">🎬 Gravar vídeo pronto</button></div></div>
+ <div class="step"><span class="stepNumber">3</span><div><b>Assista e salve</b><p class="tiny">O vídeo aparecerá aqui quando estiver pronto.</p><div id="recordStatus" class="recordStatus" role="status" aria-live="polite"></div><video id="videoResult" controls playsinline hidden aria-label="Vídeo finalizado"></video><button class="secondary saveVideo" id="downloadVideo" hidden type="button">⬇ Salvar vídeo</button></div></div>
+ <p class="tiny disclaimer">O arquivo será MP4 quando o navegador oferecer esse formato; caso contrário, WEBM. Não saia desta tela durante a gravação.</p>
+</section>
+<details class="advanced"><summary>Ferramentas avançadas (opcional)</summary><div class="actionRow"><button id="downloadHtml" class="primary">↓ Exportar projeto Hyperframes</button><button id="downloadJson" class="secondary">Exportar dados JSON</button><button id="reset" class="ghost">Restaurar</button></div>
+  <div class="help"><b>Como gerar MP4:</b> instale Node.js 22+ e FFmpeg no computador ou servidor. Crie um projeto com <code>npx hyperframes init fenix-video --non-interactive --example blank</code>, substitua seu <code>index.html</code> pelo arquivo exportado e execute <code>npx hyperframes render -o video-fenix.mp4</code>. A prévia nesta página não é um renderizador MP4.</div>
+</details>
+</section>
+<section class="showcase" aria-labelledby="previewTitle">
+<div class="previewHeading"><div><div class="eyebrow">02 / VISUALIZAÇÃO</div><h2 id="previewTitle">Prévia criativa</h2></div><button id="replay" class="secondary" type="button">↻ Reproduzir animação</button></div>
+<div class="stage"><div id="canvas" class="canvas ivory portrait" role="img" aria-label="Prévia do vídeo">
+<div class="texture"></div><div id="imageLayer" class="imageLayer"></div><div class="halo"></div>
+<div class="watermark"><span id="logoBadge" class="logoBadge">🐦‍🔥</span><b>FÊNIX <span>WARRIORS</span></b></div>
+<div class="centerContent"><div class="kicker">SEU PRÓXIMO CAPÍTULO</div><div id="pHeadline" class="headline"></div><div class="rule"></div><div id="pSubtitle" class="subtitle"></div></div>
+<div class="lower"><div id="pHost" class="host"></div><div id="pCta" class="cta"></div></div>
+<div class="ornament" aria-hidden="true">⚔</div>
+</div></div>
+<div class="frameFooter"><span id="dimensions">1080 × 1920</span><span id="timing">12 segundos · 30 FPS</span></div>
+<p class="aside">Não envia fotos para servidores. Os arquivos carregados permanecem nesta sessão do navegador e serão incorporados ao HTML exportado.</p>
+</section>
+</main>
+<footer>Fênix Video Studio · Versão experimental · Não vinculado oficialmente à BIGO LIVE.</footer>
+<script src="./studio.js"></script>
+<script src="./record.js"></script>
+</body></html>
