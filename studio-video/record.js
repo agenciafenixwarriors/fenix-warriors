@@ -119,9 +119,10 @@ function renderFactory(cfg,width,height,photo,logo,seconds){
  };
  return {canvas:c,paint};
 }
-function pickVideoType(){
+function pickVideoType(audio){
  if(!window.MediaRecorder)return"";
- return chooseMime(["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp8,opus","video/webm;codecs=vp9,opus","video/webm"]);
+ const types=audio?["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp8,opus","video/webm;codecs=vp9,opus","video/webm"]:["video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp8","video/webm;codecs=vp9","video/webm"];
+ return chooseMime(types);
 }
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function recordVideo(){
@@ -150,7 +151,7 @@ async function recordVideo(){
    const mix=new MediaStream(stream.getVideoTracks());
    let dst;
    if(audio){dst=audioCtx.createMediaStreamDestination();source=audioCtx.createBufferSource();source.buffer=audio;source.connect(dst);mix.addTrack(dst.stream.getAudioTracks()[0]);}
-   const mime=pickVideoType(); if(!mime){setStatus("Este navegador não consegue salvar vídeos. Experimente o Chrome atualizado.","error");return;}
+   const mime=pickVideoType(Boolean(audio)); if(!mime){setStatus("Este navegador não consegue salvar vídeos. Experimente o Chrome atualizado.","error");return;}
    const options={mimeType:mime,videoBitsPerSecond:2_000_000,audioBitsPerSecond:128_000};
    recorder=new MediaRecorder(mix,options);
    const blobs=[];
@@ -168,10 +169,12 @@ async function recordVideo(){
    const tick=()=>{const t=Math.min(duration,(performance.now()-started)/1000);paint(t);frame++;};
    // Frame loop separado de requestAnimationFrame: não bloqueia renderização e progride com o tempo.
    const timer=setInterval(tick,1000/24);
+   const countdown=setInterval(()=>setStatus("Gravando vídeo... "+Math.max(0,Math.ceil(duration-(performance.now()-started)/1000))+" segundos restantes","recording"),1000);
    const sleep=duration*1000;
    const startMark=Date.now();
    await delay(sleep);
    clearInterval(timer);
+   clearInterval(countdown);
    paint(duration);
    if(recorder.state==="recording")recorder.stop();
    await done;
