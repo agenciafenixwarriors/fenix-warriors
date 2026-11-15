@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#181513">
+<meta name="description" content="Fênix Video Studio — criador de composições para vídeos da Agência e Família Fênix Warriors.">
+<title>Fênix Video Studio | MVP</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="symbol" aria-hidden="true">🐦‍🔥</span><div><b>FÊNIX <em>VIDEO</em> STUDIO</b><small>Agência Fênix Warriors · laboratório criativo</small></div></div>
+  <span class="status">MVP · composição Hyperframes</span>
+</header>
+<main class="shell">
+<section class="editor" aria-labelledby="editorTitle">
+  <div class="eyebrow">01 / DIREÇÃO CRIATIVA</div><h1 id="editorTitle">Seu vídeo começa aqui.</h1>
+  <p class="muted">Personalize o roteiro visual, visualize no celular e exporte a composição HTML para renderizar em MP4 usando Hyperframes.</p>
+  <div class="fields">
+    <label>Modelo<select id="template"><option value="recruitment">Recrutamento</option><option value="event">Evento / PK</option><option value="goals">Metas e resultados</option><option value="offer">Oferta comercial</option></select></label>
+    <label>Formato<select id="format"><option value="portrait">Vertical 9:16</option><option value="square">Quadrado 1:1</option><option value="landscape">Horizontal 16:9</option></select></label>
+    <label class="wide">Título principal<input id="headline" maxlength="85" value="Sua história pode brilhar." /></label>
+    <label class="wide">Subtítulo<textarea id="subtitle" rows="2" maxlength="180">Transforme talento em oportunidades com a Agência Fênix Warriors.</textarea></label>
+    <label>Assinatura / Host<input id="host" maxlength="58" value="AGÊNCIA FÊNIX WARRIORS" /></label>
+    <label>Chamada final<input id="cta" maxlength="75" value="ENTRE PARA NOSSO TIME" /></label>
+    <label>Duração (segundos)<select id="duration"><option value="8">8 segundos</option><option value="12" selected>12 segundos</option><option value="15">15 segundos</option></select></label>
+    <label>Estética<select id="theme"><option value="ivory">Marfim + dourado</option><option value="dark">Preto + vermelho</option></select></label>
+  </div>
+  <div class="uploadRow"><label class="fileLabel"> <span>Imagem de fundo</span><input type="file" id="background" accept="image/png,image/jpeg,image/webp"><small>PNG / JPG / WebP · até 5 MB</small></label><label class="fileLabel"><span>Logomarca oficial</span><input type="file" id="logo" accept="image/png,image/jpeg,image/webp"><small>Opcional · sem armazenamento remoto</small></label></div>
+  <div id="uploadMessage" class="notice" aria-live="polite"></div>
+  <div class="actionRow"><button id="downloadHtml" class="primary">↓ Exportar projeto Hyperframes</button><button id="downloadJson" class="secondary">Exportar dados JSON</button><button id="reset" class="ghost">Restaurar</button></div>
+  <div class="help"><b>Como gerar MP4:</b> instale Node.js 22+ e FFmpeg no computador ou servidor. Crie um projeto com <code>npx hyperframes init fenix-video --non-interactive --example blank</code>, substitua seu <code>index.html</code> pelo arquivo exportado e execute <code>npx hyperframes render -o video-fenix.mp4</code>. A prévia nesta página não é um renderizador MP4.</div>
+</section>
+<section class="showcase" aria-labelledby="previewTitle">
+<div class="previewHeading"><div><div class="eyebrow">02 / VISUALIZAÇÃO</div><h2 id="previewTitle">Prévia criativa</h2></div><button id="replay" class="secondary" type="button">↻ Reproduzir animação</button></div>
+<div class="stage"><div id="canvas" class="canvas ivory portrait" role="img" aria-label="Prévia do vídeo">
+<div class="texture"></div><div id="imageLayer" class="imageLayer"></div><div class="halo"></div>
+<div class="watermark"><span id="logoBadge" class="logoBadge">🐦‍🔥</span><b>FÊNIX <span>WARRIORS</span></b></div>
+<div class="centerContent"><div class="kicker">SEU PRÓXIMO CAPÍTULO</div><div id="pHeadline" class="headline"></div><div class="rule"></div><div id="pSubtitle" class="subtitle"></div></div>
+<div class="lower"><div id="pHost" class="host"></div><div id="pCta" class="cta"></div></div>
+<div class="ornament" aria-hidden="true">⚔</div>
+</div></div>
+<div class="frameFooter"><span id="dimensions">1080 × 1920</span><span id="timing">12 segundos · 30 FPS</span></div>
+<p class="aside">Não envia fotos para servidores. Os arquivos carregados permanecem nesta sessão do navegador e serão incorporados ao HTML exportado.</p>
+</section>
+</main>
+<footer>Fênix Video Studio · Versão experimental · Não vinculado oficialmente à BIGO LIVE.</footer>
+<script src="./studio.js"></script>
+</body></html>
