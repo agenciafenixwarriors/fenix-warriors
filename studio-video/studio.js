@@ -8,6 +8,7 @@ const defaults={
 };
 const fields=["template","format","headline","subtitle","host","cta","duration","theme"];
 const imageState={background:"",logo:""};
+window.fenixImages=imageState;
 const safe=(s)=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const d=()=>Object.fromEntries(fields.map(k=>[k,$(k).value]));
 const sizes={portrait:[1080,1920],square:[1080,1080],landscape:[1920,1080]};
